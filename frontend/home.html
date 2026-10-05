@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="VirusScan Security Dashboard — Analyze APKs, URLs, certificates and application behavior before they become a threat.">
+    <title>Dashboard — VirusScan Security</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="navbar-inner">
+            <a href="/home" class="navbar-brand" aria-label="VirusScan Security home">
+                <div class="navbar-brand-icon">🔎︎</div>
+                <span>VirusScan Security</span>
+            </a>
+
+            <div class="navbar-right">
+                <button class="nav-menu-btn" type="button" aria-expanded="false" aria-controls="site-menu">
+                    Menu <span aria-hidden="true"></span>
+                </button>
+                <div class="site-menu" id="site-menu">
+                    <a href="#features">Services</a>
+                    <a href="/about">About Us</a>
+                    <a href="/contact">Contact Us</a>
+                    <div class="site-menu-divider"></div>
+                    <a href="/scanner" class="site-menu-primary">APK Analyzer</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <br>
+    <br>
+    <br>
+    <br>
+
+    <main>
+        <!-- Compact Hero -->
+        <section class="hero hero-compact container">
+            <div class="hero-copy">
+                <h1>Know what an APK can do <span>before you install it.</span></h1>
+                <p>Deep static inspection of permissions, components, bytecode, network indicators and signing evidence — with AI used as a bounded second opinion.</p>
+                <div class="hero-actions">
+
+                     <br>
+    <br>
+        <br>
+    <br>
+    
+                    <a href="/scanner" class="btn btn-primary btn-lg">🔍 Analyze an APK</a>
+                    <a href="#features" class="hero-text-link">Explore services →</a>
+                </div>
+            </div>
+            
+        </section>
+
+        <!-- Feature Cards -->
+        <section class="features-section container" id="features">
+            <div class="section-header">
+                <h2>Security Services</h2>
+                <p>Comprehensive Android security analysis tools to keep you safe.</p>
+            </div>
+
+            <div class="features-grid">
+                <!-- APK Scanner -->
+                <div class="feature-card">
+                    <div class="feature-icon feature-icon--scanner">🔎︎</div>
+                    <span class="feature-tag feature-tag--core">Core Feature</span>
+                    <h3>APK Malware Scanner</h3>
+                    <p>Upload an Android APK and analyze its permissions, components, API calls, intents, certificates, and suspicious indicators.</p>
+                    <a href="/scanner" class="btn btn-primary">Analyze APK</a>
+                </div>
+
+
+                <!-- Behavior Sandbox -->
+                <div class="feature-card">
+                    <div class="feature-icon feature-icon--behavior">🔐</div>
+                    <span class="feature-tag feature-tag--analysis">Analysis</span>
+                    <h3>Behavior Sandbox</h3>
+                    <p>Evaluate potentially dangerous application behaviors using static indicators and controlled behavioral analysis.</p>
+                    <a href="/behavior" class="btn btn-secondary">Run Behavior Analysis</a>
+                </div>
+
+                <!-- Certificate Analyzer -->
+                <div class="feature-card">
+                    <div class="feature-icon feature-icon--cert">📃</div>
+                    <span class="feature-tag feature-tag--security">Security</span>
+                    <h3>Certificate Analyzer</h3>
+                    <p>Inspect APK signing information, certificate metadata, signer information and suspicious certificate indicators.</p>
+                    <a href="/certificate" class="btn btn-secondary">Analyze Certificate</a>
+                </div>
+
+                <!-- Protection -->
+                <div class="feature-card">
+                    <div class="feature-icon feature-icon--protection">🔐</div>
+                    <span class="feature-tag feature-tag--protection">Protection</span>
+                    <h3>Your Protection</h3>
+                    <p>View your security recommendations, recently detected threats, and personalized protection score based on your scan history.</p>
+                    <a href="/protection" class="btn btn-secondary">View Protection</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Recent Scans -->
+        <section class="container" style="padding-bottom: 48px;" id="history-section">
+            <div class="section-header">
+                <h2>Recent Security Scans</h2>
+                <p>Your latest analysis results at a glance.</p>
+            </div>
+
+            <div id="history-container">
+                <div class="empty-state" id="history-empty">
+                    <div class="empty-state-icon">📋</div>
+                    <h3>No scans yet</h3>
+                    <p>Upload an APK to get started.</p>
+                    <a href="/scanner" class="btn btn-primary btn-sm">Start Scanning</a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 <a href="/home">VirusScan Security</a> — AI-assisted Android security analysis. Built for hackathon.</p>
+        </div>
+    </footer>
+
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const menuBtn = document.querySelector('.nav-menu-btn');
+            const menu = document.getElementById('site-menu');
+            if (menuBtn && menu) {
+                menuBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const open = menu.classList.toggle('open');
+                    menuBtn.setAttribute('aria-expanded', String(open));
+                });
+                document.addEventListener('click', () => {
+                    menu.classList.remove('open');
+                    menuBtn.setAttribute('aria-expanded', 'false');
+                });
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!Auth.requireAuth()) return;
+
+            // Load stats
+            try {
+                const stats = await API.getStats();
+                document.getElementById('stat-apk-scans').textContent = stats.apk_scans || 0;
+                document.getElementById('stat-threats').textContent = stats.threats_detected || 0;
+                document.getElementById('stat-urls').textContent = stats.urls_analyzed || 0;
+                document.getElementById('stat-score').textContent = stats.security_score || 85;
+            } catch (e) {
+                console.error('Stats error:', e);
+            }
+
+            // Load history
+            loadHistory();
+        });
+
+        async function loadHistory() {
+            try {
+                const history = await API.getHistory(10);
+                const container = document.getElementById('history-container');
+                const emptyEl = document.getElementById('history-empty');
+
+                if (history.length === 0) {
+                    if (emptyEl) emptyEl.style.display = '';
+                    return;
+                }
+
+                if (emptyEl) emptyEl.style.display = 'none';
+
+                container.innerHTML = `
+                    <div class="history-table-wrapper">
+                        <table class="history-table">
+                            <thead>
+                                <tr>
+                                    <th>Type</th>
+                                    <th>File / URL</th>
+                                    <th>Score</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${history.map(h => `
+                                    <tr>
+                                        <td>
+                                            <span class="badge badge-info">${escapeHtml(h.scan_type.toUpperCase())}</span>
+                                        </td>
+                                        <td style="font-family: 'JetBrains Mono'; font-size: 13px;">
+                                            ${escapeHtml(h.filename || 'N/A')}
+                                        </td>
+                                        <td class="score-cell" style="color: ${getClassificationColor(h.classification)}">
+                                            ${h.risk_score ?? 'N/A'}
+                                        </td>
+                                        <td>${getClassificationBadge(h.classification || 'UNKNOWN')}</td>
+                                        <td style="font-size: 12px; color: var(--text-secondary);">
+                                            ${formatDate(h.created_at)}
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            } catch (e) {
+                console.error('History error:', e);
+            }
+        }
+    </script>
+</body>
+</html>

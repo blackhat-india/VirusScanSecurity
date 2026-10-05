@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="VirusScan Security Certificate Inspector — APK signing certificate validation and cryptographic integrity analysis.">
+    <title>Certificate Analyzer — VirusScan Security</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="navbar-inner">
+            <a href="/home" class="navbar-brand" aria-label="VirusScan Security home">
+                <div class="navbar-brand-icon">🔎︎</div>
+                <span>VirusScan Security</span>
+            </a>
+            <div class="navbar-right">
+                <button class="nav-menu-btn" type="button" aria-expanded="false" aria-controls="site-menu">
+                    Menu <span aria-hidden="true"></span>
+                </button>
+                <div class="site-menu" id="site-menu">
+                    <a href="/home">Services</a>
+                    <a href="/about">About Us</a>
+                    <a href="/contact">Contact Us</a>
+                    <div class="site-menu-divider"></div>
+                    <a href="/scanner" class="site-menu-primary">APK Analyzer</a>
+                    <a href="/protection">Protection</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="hero-badge" style="margin-bottom: 12px;">📜 Cryptographic Integrity</div>
+            <h1>APK Certificate & Signature Analyzer</h1>
+            <p>Verify developer credentials, signature algorithms, self-signed certificates, debug keys, and certificate validity dates embedded in APK archives.</p>
+        </div>
+
+        <!-- Upload Card -->
+        <div class="content-card" style="max-width: 800px; margin: 0 auto var(--space-xl);">
+            <div class="upload-zone" id="cert-dropzone" style="padding: var(--space-2xl) var(--space-lg);">
+                <div class="upload-icon">📜</div>
+                <h3>Drop APK here to verify its certificate</h3>
+                <p>Verify RSA / ECDSA / DSA keys, validity periods, and developer identities</p>
+                <input type="file" id="cert-apk-input" accept=".apk">
+
+                <div class="upload-file-info" id="cert-file-info">
+                    <div class="upload-file-icon">📱</div>
+                    <div>
+                        <div class="upload-file-name" id="c-file-name">app.apk</div>
+                        <div class="upload-file-size" id="c-file-size">0 KB</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="scan-actions" style="margin-top: 20px;">
+                <button class="btn btn-primary btn-lg" id="btn-start-cert" disabled>
+                    📜 Inspect Certificate
+                </button>
+                <button class="btn btn-secondary btn-lg" id="btn-demo-cert">
+                    ⚡ View Sample Certificate
+                </button>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="cert-loading" style="display: none; text-align: center; padding: 40px 0;">
+            <div class="spinner" style="margin: 0 auto 16px; width: 36px; height: 36px; border-width: 3px;"></div>
+            <p style="font-weight: 600; color: var(--text-main);">Extracting META-INF signature block and x509 certificate...</p>
+        </div>
+
+        <!-- Results Section -->
+        <section id="cert-results" style="display: none; max-width: 860px; margin: 0 auto var(--space-3xl);">
+            <div class="result-header-card">
+                <h2>Certificate Verification Status</h2>
+                <div class="filename" id="cert-pkg-display">com.developer.app</div>
+                <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;" id="cert-file-display">app-release.apk</div>
+
+                <div id="cert-valid-badge" style="margin-top: 8px;">
+                    <span class="badge badge-safe" style="font-size: 14px; padding: 6px 18px;">
+                        ✓ Valid Certificate Present
+                    </span>
+                </div>
+            </div>
+
+            <!-- Certificate Details Grid -->
+            <div class="detail-card">
+                <h3>📜 Certificate Metadata</h3>
+                <div class="cert-grid" id="cert-meta-grid">
+                    <!-- Fields dynamically populated -->
+                </div>
+
+                <div style="margin-top: 20px;" id="cert-fingerprint-box">
+                    <div class="cert-field-label">SHA-256 Fingerprint</div>
+                    <div class="cert-field-value mono" id="cert-sha256" style="word-break: break-all; padding: 10px; background: var(--bg-hover); border-radius: var(--radius-sm); font-size: 12px;">
+                        -
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cryptographic Checks -->
+            <div class="detail-card">
+                <h3>🔍 Security & Integrity Checks</h3>
+                <div id="cert-checks-list">
+                    <!-- Checks list -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 <a href="/home">VirusScan Security</a> — AI-assisted Android security analysis. Built for hackathon.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const b=document.querySelector('.nav-menu-btn'), m=document.getElementById('site-menu');
+            if(!b||!m)return;
+            b.addEventListener('click',e=>{e.stopPropagation();const o=m.classList.toggle('open');b.setAttribute('aria-expanded',String(o));});
+            document.addEventListener('click',()=>{m.classList.remove('open');b.setAttribute('aria-expanded','false');});
+        });
+    </script>
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!Auth.requireAuth()) return;
+
+            let selectedFile = null;
+            const startBtn = document.getElementById('btn-start-cert');
+            const demoBtn = document.getElementById('btn-demo-cert');
+
+            setupFileUpload('cert-dropzone', 'cert-apk-input', {
+                onFileSelected: (file) => {
+                    if (!file.name.toLowerCase().endsWith('.apk')) {
+                        Toast.error('Please select a valid .apk file');
+                        return;
+                    }
+                    selectedFile = file;
+                    document.getElementById('c-file-name').textContent = file.name;
+                    document.getElementById('c-file-size').textContent = formatFileSize(file.size);
+                    document.getElementById('cert-file-info').classList.add('visible');
+                    startBtn.disabled = false;
+                }
+            });
+
+            startBtn.addEventListener('click', async () => {
+                if (!selectedFile) return;
+                await runCertScan(selectedFile);
+            });
+
+            demoBtn.addEventListener('click', () => {
+                const demoData = {
+                    success: true,
+                    filename: 'droid_secure_v2.apk',
+                    package_name: 'com.virusscan.droidsecure',
+                    certificate: {
+                        present: true,
+                        subject: 'CN=VirusScan Security Production, OU=Security Engineering, O=VirusScan Inc, C=US',
+                        issuer: 'CN=DigiCert Global Root CA, O=DigiCert Inc, C=US',
+                        algorithm: 'SHA256withRSA (4096-bit)',
+                        serial_number: '7F:2A:44:91:00:8C:BD:31:AA',
+                        valid_from: '2024-01-01 00:00:00 UTC',
+                        valid_until: '2049-12-31 23:59:59 UTC',
+                        sha256_fingerprint: '3B:94:FA:E1:92:43:55:09:A1:CB:56:D7:88:12:F3:99:C2:55:78:E0:41:09:88:31:FA:B1:09:87:66:55:44:33',
+                        is_debug: false,
+                        checks: [
+                            { check: 'Certificate Presence', status: 'pass', message: 'Signed APK certificate identified in META-INF/' },
+                            { check: 'Production vs Debug Key', status: 'pass', message: 'Signed with production release certificate (not AndroidDebugKey)' },
+                            { check: 'Algorithm Security', status: 'pass', message: 'Uses modern SHA256withRSA with strong key length (>= 2048 bit)' },
+                            { check: 'Validity Window', status: 'pass', message: 'Certificate currently within valid chronological active span' }
+                        ]
+                    }
+                };
+                renderCertResults(demoData);
+                Toast.info('Displaying Sample Production Certificate');
+            });
+        });
+
+        async function runCertScan(file) {
+            const loading = document.getElementById('cert-loading');
+            const results = document.getElementById('cert-results');
+
+            loading.style.display = 'block';
+            results.style.display = 'none';
+
+            try {
+                const data = await API.analyzeCertificate(file);
+                loading.style.display = 'none';
+
+                if (!data.success) {
+                    throw new Error(data.error || 'Certificate extraction failed');
+                }
+
+                renderCertResults(data);
+                Toast.success('Certificate details extracted successfully!');
+            } catch (err) {
+                loading.style.display = 'none';
+                Toast.error(err.message);
+            }
+        }
+
+        function renderCertResults(data) {
+            const results = document.getElementById('cert-results');
+            results.style.display = 'block';
+
+            document.getElementById('cert-pkg-display').textContent = data.package_name || 'N/A';
+            document.getElementById('cert-file-display').textContent = data.filename || 'APK File';
+
+            const cert = data.certificate || {};
+
+            const validBadge = document.getElementById('cert-valid-badge');
+            if (cert.present) {
+                if (cert.is_debug) {
+                    validBadge.innerHTML = '<span class="badge badge-suspicious" style="font-size: 14px; padding: 6px 18px;">⚠ Debug Certificate Detected</span>';
+                } else {
+                    validBadge.innerHTML = '<span class="badge badge-safe" style="font-size: 14px; padding: 6px 18px;">✓ Valid Production Certificate</span>';
+                }
+            } else {
+                validBadge.innerHTML = '<span class="badge badge-malicious" style="font-size: 14px; padding: 6px 18px;">✗ Unsigned or Missing Certificate</span>';
+            }
+
+            const grid = document.getElementById('cert-meta-grid');
+            grid.innerHTML = `
+                <div class="cert-field">
+                    <div class="cert-field-label">Subject / Owner</div>
+                    <div class="cert-field-value">${escapeHtml(cert.subject || 'Unknown')}</div>
+                </div>
+                <div class="cert-field">
+                    <div class="cert-field-label">Issuer / Authority</div>
+                    <div class="cert-field-value">${escapeHtml(cert.issuer || 'Unknown')}</div>
+                </div>
+                <div class="cert-field">
+                    <div class="cert-field-label">Signing Algorithm</div>
+                    <div class="cert-field-value">${escapeHtml(cert.algorithm || 'Unknown')}</div>
+                </div>
+                <div class="cert-field">
+                    <div class="cert-field-label">Serial Number</div>
+                    <div class="cert-field-value">${escapeHtml(cert.serial_number || 'Unknown')}</div>
+                </div>
+                <div class="cert-field">
+                    <div class="cert-field-label">Valid From</div>
+                    <div class="cert-field-value">${escapeHtml(cert.valid_from || 'Unknown')}</div>
+                </div>
+                <div class="cert-field">
+                    <div class="cert-field-label">Valid Until</div>
+                    <div class="cert-field-value">${escapeHtml(cert.valid_until || 'Unknown')}</div>
+                </div>
+            `;
+
+            document.getElementById('cert-sha256').textContent = cert.sha256_fingerprint || 'Not Available';
+
+            const checksList = document.getElementById('cert-checks-list');
+            const checks = cert.checks || [];
+
+            if (checks.length === 0) {
+                checksList.innerHTML = '<p style="color: var(--text-secondary);">No specific validation checks available.</p>';
+            } else {
+                checksList.innerHTML = checks.map(c => `
+                    <div class="cert-check">
+                        <div class="cert-check-icon ${c.status}">
+                            ${c.status === 'pass' ? '✓' : c.status === 'warn' ? '⚠' : '✗'}
+                        </div>
+                        <div>
+                            <strong>${escapeHtml(c.check)}</strong>
+                            <div style="font-size: 12px; color: var(--text-secondary);">
+                                ${escapeHtml(c.message)}
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            results.scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>

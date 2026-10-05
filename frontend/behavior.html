@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="VirusScan Security Behavior Sandbox — Static behavioral sequence inference and simulated runtime timeline.">
+    <title>Behavior Sandbox — VirusScan Security</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="navbar-inner">
+            <a href="/home" class="navbar-brand" aria-label="VirusScan Security home">
+                <div class="navbar-brand-icon">🔎︎</div>
+                <span>VirusScan Security</span>
+            </a>
+            <div class="navbar-right">
+                <button class="nav-menu-btn" type="button" aria-expanded="false" aria-controls="site-menu">
+                    Menu <span aria-hidden="true"></span>
+                </button>
+                <div class="site-menu" id="site-menu">
+                    <a href="/home">Services</a>
+                    <a href="/about">About Us</a>
+                    <a href="/contact">Contact Us</a>
+                    <div class="site-menu-divider"></div>
+                    <a href="/scanner" class="site-menu-primary">APK Analyzer</a>
+                    
+                    <a href="/protection">Protection</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="hero-badge" style="margin-bottom: 12px;">⚡ Static Behavioral Inference</div>
+            <h1>Behavior Sandbox Timeline</h1>
+            <p>Simulate execution flows and track probable runtime lifecycle steps based on manifest components, background services, broadcast receivers, and sensitive API invocations.</p>
+        </div>
+
+        <!-- Upload & Options -->
+        <div class="content-card" style="max-width: 800px; margin: 0 auto var(--space-xl);">
+            <div class="upload-zone" id="behavior-dropzone" style="padding: var(--space-2xl) var(--space-lg);">
+                <div class="upload-icon">⚡</div>
+                <h3>Select an APK to reconstruct its behavior</h3>
+                <p>Upload a file or inspect our preloaded malware sample</p>
+                <input type="file" id="behavior-apk-input" accept=".apk">
+
+                <div class="upload-file-info" id="behavior-file-info">
+                    <div class="upload-file-icon">📱</div>
+                    <div>
+                        <div class="upload-file-name" id="b-file-name">app.apk</div>
+                        <div class="upload-file-size" id="b-file-size">0 KB</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="scan-actions" style="margin-top: 20px;">
+                <button class="btn btn-primary btn-lg" id="btn-start-behavior" disabled>
+                    ⚡ Generate Behavior Timeline
+                </button>
+                <button class="btn btn-secondary btn-lg" id="btn-demo-behavior">
+                    🎯 View Spyware Demo Flow
+                </button>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="behavior-loading" style="display: none; text-align: center; padding: 40px 0;">
+            <div class="spinner" style="margin: 0 auto 16px; width: 36px; height: 36px; border-width: 3px;"></div>
+            <p style="font-weight: 600; color: var(--text-main);">Dissecting execution graphs and building timeline...</p>
+        </div>
+
+        <!-- Results Section -->
+        <section id="behavior-results" style="display: none; max-width: 860px; margin: 0 auto var(--space-3xl);">
+            <div class="result-header-card">
+                <h2>Inferred Execution Timeline</h2>
+                <div class="filename" id="behavior-pkg-display">com.example.app</div>
+                <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;" id="behavior-filename-display">app-release.apk</div>
+
+                <div class="score-display">
+                    <div class="score-circle" id="behavior-score-circle"></div>
+                    <div class="score-classification" id="behavior-classification">SUSPICIOUS</div>
+                </div>
+            </div>
+
+            <!-- AI Behavioral Summary -->
+            <div id="behavior-ai-container"></div>
+
+            <!-- Timeline Card -->
+            <div class="detail-card">
+                <h3>🕒 Lifecycle & Execution Sequence</h3>
+                <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 24px;">
+                    Stages ordered by typical Android execution lifecycle from package registration to persistent payload deployment:
+                </p>
+
+                <div class="behavior-timeline" id="timeline-list">
+                    <!-- Dynamically populated -->
+                </div>
+            </div>
+
+            <!-- Disclaimer -->
+            <div class="disclaimer">
+                <strong>Safety Notice:</strong> VirusScan Security uses static behavioral inference. The APK is never executed on the host system, eliminating any risk of infection during analysis.
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 <a href="/home">VirusScan Security</a> — AI-assisted Android security analysis. Built for hackathon.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const b=document.querySelector('.nav-menu-btn'), m=document.getElementById('site-menu');
+            if(!b||!m)return;
+            b.addEventListener('click',e=>{e.stopPropagation();const o=m.classList.toggle('open');b.setAttribute('aria-expanded',String(o));});
+            document.addEventListener('click',()=>{m.classList.remove('open');b.setAttribute('aria-expanded','false');});
+        });
+    </script>
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!Auth.requireAuth()) return;
+
+            let selectedFile = null;
+            const startBtn = document.getElementById('btn-start-behavior');
+            const demoBtn = document.getElementById('btn-demo-behavior');
+
+            setupFileUpload('behavior-dropzone', 'behavior-apk-input', {
+                onFileSelected: (file) => {
+                    if (!file.name.toLowerCase().endsWith('.apk')) {
+                        Toast.error('Please select a valid .apk file');
+                        return;
+                    }
+                    selectedFile = file;
+                    document.getElementById('b-file-name').textContent = file.name;
+                    document.getElementById('b-file-size').textContent = formatFileSize(file.size);
+                    document.getElementById('behavior-file-info').classList.add('visible');
+                    startBtn.disabled = false;
+                }
+            });
+
+            startBtn.addEventListener('click', async () => {
+                if (!selectedFile) return;
+                await runBehaviorScan(selectedFile);
+            });
+
+            demoBtn.addEventListener('click', () => {
+                const demoData = {
+                    success: true,
+                    filename: 'spyware_sample.apk',
+                    package_name: 'com.stealth.tracker',
+                    risk_score: 88,
+                    classification: 'MALICIOUS',
+                    behavior_timeline: [
+                        { step: 'Application installed', risk: 'LOW', description: 'App registers in user space and creates base sandbox.' },
+                        { step: 'Registers BOOT_COMPLETED receiver', risk: 'HIGH', description: 'Configures autostart persistence to survive device restarts without user awareness.' },
+                        { step: 'Launches Hidden Background Service', risk: 'HIGH', description: 'Spawns unexported foreground/background service with STICKY flag.' },
+                        { step: 'Interceps Incoming SMS Messages', risk: 'HIGH', description: 'Listens for SMS_RECEIVED intents and extracts OTP tokens and messages.' },
+                        { step: 'Accesses Sensitive APIs (DexClassLoader)', risk: 'HIGH', description: 'Attempts to load secondary executable payloads from external or remote storage.' },
+                        { step: 'Exfiltrates Data via Outbound HTTP', risk: 'HIGH', description: 'Transmits collected device info and credentials to remote C2 server at 198.51.100.24.' }
+                    ],
+                    gemini_analysis: {
+                        summary: 'The application demonstrates classic surveillance spyware behavior: it establishes persistence at boot, hides background services, intercepts incoming SMS verification codes, and prepares dynamic code execution via DexClassLoader.',
+                        confidence: 'HIGH'
+                    }
+                };
+                renderBehaviorResults(demoData);
+                Toast.info('Displaying Spyware Demo timeline');
+            });
+        });
+
+        async function runBehaviorScan(file) {
+            const loading = document.getElementById('behavior-loading');
+            const results = document.getElementById('behavior-results');
+
+            loading.style.display = 'block';
+            results.style.display = 'none';
+
+            try {
+                const data = await API.analyzeBehavior(file);
+                loading.style.display = 'none';
+
+                if (!data.success) {
+                    throw new Error(data.error || 'Behavior analysis failed');
+                }
+
+                renderBehaviorResults(data);
+                Toast.success('Behavior sequence reconstructed!');
+            } catch (err) {
+                loading.style.display = 'none';
+                Toast.error(err.message);
+            }
+        }
+
+        function renderBehaviorResults(data) {
+            const results = document.getElementById('behavior-results');
+            results.style.display = 'block';
+
+            document.getElementById('behavior-pkg-display').textContent = data.package_name || 'N/A';
+            document.getElementById('behavior-filename-display').textContent = data.filename || 'APK Sample';
+
+            const score = data.risk_score || 0;
+            const classification = data.classification || 'SUSPICIOUS';
+
+            const classEl = document.getElementById('behavior-classification');
+            classEl.textContent = classification;
+            classEl.style.color = getClassificationColor(classification);
+
+            drawScoreCircle('behavior-score-circle', score);
+
+            // AI Box
+            const aiContainer = document.getElementById('behavior-ai-container');
+            if (data.gemini_analysis && data.gemini_analysis.summary) {
+                aiContainer.innerHTML = `
+                    <div class="ai-assessment">
+                        <h3>🤖 AI Behavioral Interpretation
+                            <span class="badge badge-info" style="margin-left: 8px; font-size: 10px;">Powered by Gemini</span>
+                        </h3>
+                        <p>${escapeHtml(data.gemini_analysis.summary)}</p>
+                    </div>
+                `;
+            } else {
+                aiContainer.innerHTML = '';
+            }
+
+            // Timeline Items
+            const timelineList = document.getElementById('timeline-list');
+            const steps = data.behavior_timeline || [];
+
+            if (steps.length === 0) {
+                timelineList.innerHTML = '<p style="color: var(--text-secondary);">No noticeable behavior sequence extracted.</p>';
+            } else {
+                timelineList.innerHTML = steps.map(s => {
+                    const r = (s.risk || 'LOW').toLowerCase();
+                    return `
+                        <div class="timeline-item">
+                            <div class="timeline-dot ${r}"></div>
+                            <div class="timeline-content">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                    <h4 style="margin: 0;">${escapeHtml(s.step)}</h4>
+                                    <span class="badge badge-${r === 'high' ? 'malicious' : r === 'medium' ? 'suspicious' : 'safe'}" style="font-size: 10px;">
+                                        ${escapeHtml(s.risk || 'INFO')}
+                                    </span>
+                                </div>
+                                <p>${escapeHtml(s.description || '')}</p>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            results.scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>

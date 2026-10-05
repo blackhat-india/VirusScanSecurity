@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="VirusScan Security URL Analyzer — Detect malicious links, phishing domains, and suspicious endpoints.">
+    <title>URL & Network Analyzer — VirusScan Security</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="navbar-inner">
+            <a href="/home" class="navbar-brand" aria-label="VirusScan Security home">
+                <div class="navbar-brand-icon">🔎︎</div>
+                <span>VirusScan Security</span>
+            </a>
+            <div class="navbar-right">
+                <button class="nav-menu-btn" type="button" aria-expanded="false" aria-controls="site-menu">
+                    Menu <span aria-hidden="true">⌄</span>
+                </button>
+                <div class="site-menu" id="site-menu">
+                    <a href="/home">Services</a>
+                    <a href="/about">About Us</a>
+                    <a href="/contact">Contact Us</a>
+                    <div class="site-menu-divider"></div>
+                    <a href="/scanner" class="site-menu-primary">APK Analyzer</a>
+                    <a href="/url-analyzer">URL Analyzer</a>
+                    <a href="/protection">Protection</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="hero-badge" style="margin-bottom: 12px;">🌐 Network Threat Detection</div>
+            <h1>URL & Network Analyzer</h1>
+            <p>Scan web links, APK download endpoints, and suspicious domains to uncover malware delivery, phishing vectors, and risky infrastructure.</p>
+        </div>
+
+        <!-- URL Input Section -->
+        <div class="content-card" style="max-width: 800px; margin: 0 auto var(--space-xl);">
+            <div class="url-input-group">
+                <input type="text" id="url-input" class="url-input" placeholder="e.g. https://secure-android-update.cc/payload.apk" autofocus>
+                <button class="btn btn-primary btn-lg" id="btn-analyze-url">
+                    🔍 Analyze URL
+                </button>
+            </div>
+
+            <!-- Quick Demo URLs -->
+            <div style="margin-top: 16px; font-size: 13px; color: var(--text-secondary);">
+                <span>Quick Test Samples:</span>
+                <div style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap;">
+                    <button class="btn btn-sm btn-secondary sample-url" data-url="http://192.168.1.100:8080/malicious_payload.apk">
+                        Direct IP APK Link
+                    </button>
+                    <button class="btn btn-sm btn-secondary sample-url" data-url="https://secure-login-verify-account.tk/android/auth">
+                        Phishing Free-TLD URL
+                    </button>
+                    <button class="btn btn-sm btn-secondary sample-url" data-url="https://github.com/android/platform-tools">
+                        Safe Verified URL
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="url-loading" style="display: none; text-align: center; padding: 40px 0;">
+            <div class="spinner" style="margin: 0 auto 16px; width: 36px; height: 36px; border-width: 3px;"></div>
+            <p style="font-weight: 600; color: var(--text-main);">Inspecting URL structure, domain reputation, and AI heuristics...</p>
+        </div>
+
+        <!-- Results Section -->
+        <section id="url-results" style="display: none; max-width: 860px; margin: 0 auto var(--space-3xl);">
+            <div class="result-header-card">
+                <h2>URL Reputation Analysis</h2>
+                <div class="filename" id="url-target-display" style="word-break: break-all;"></div>
+
+                <div class="score-display">
+                    <div class="score-circle" id="url-score-circle"></div>
+                    <div class="score-classification" id="url-classification">SAFE</div>
+                    <div class="score-confidence" id="url-confidence">Confidence: HIGH</div>
+                </div>
+            </div>
+
+            <!-- URL Attributes Grid -->
+            <div class="results-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+                <div class="result-metric">
+                    <div class="result-metric-icon">🌐</div>
+                    <div class="result-metric-value" id="res-hostname" style="font-size: 15px; font-family: 'JetBrains Mono';">Unknown</div>
+                    <div class="result-metric-label">Hostname</div>
+                </div>
+                <div class="result-metric">
+                    <div class="result-metric-icon">🔒</div>
+                    <div class="result-metric-value" id="res-scheme" style="font-size: 16px;">HTTPS</div>
+                    <div class="result-metric-label">Protocol Scheme</div>
+                </div>
+                <div class="result-metric">
+                    <div class="result-metric-icon">🚩</div>
+                    <div class="result-metric-value" id="res-indicators-count">0</div>
+                    <div class="result-metric-label">Risk Flags</div>
+                </div>
+            </div>
+
+            <!-- AI Assessment -->
+            <div id="url-ai-assessment"></div>
+
+            <!-- Flagged Indicators -->
+            <div class="detail-card" id="indicators-card">
+                <h3>⚠ URL Indicators & Signals</h3>
+                <div id="indicators-list"></div>
+            </div>
+
+            <!-- Recommendations -->
+            <div class="detail-card">
+                <h3>🛡 Recommended Action</h3>
+                <div id="url-action-banner" style="padding: 16px; border-radius: var(--radius-md); text-align: center; margin-bottom: 16px;"></div>
+                <ul class="recommendations-list" id="url-recommendations"></ul>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>© 2026 <a href="/home">VirusScan Security</a> — AI-assisted Android security analysis. Built for hackathon.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const b=document.querySelector('.nav-menu-btn'), m=document.getElementById('site-menu');
+            if(!b||!m)return;
+            b.addEventListener('click',e=>{e.stopPropagation();const o=m.classList.toggle('open');b.setAttribute('aria-expanded',String(o));});
+            document.addEventListener('click',()=>{m.classList.remove('open');b.setAttribute('aria-expanded','false');});
+        });
+    </script>
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!Auth.requireAuth()) return;
+
+            const input = document.getElementById('url-input');
+            const analyzeBtn = document.getElementById('btn-analyze-url');
+
+            // Quick samples
+            document.querySelectorAll('.sample-url').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    input.value = btn.getAttribute('data-url');
+                    runUrlScan(input.value.trim());
+                });
+            });
+
+            // Analyze button click
+            analyzeBtn.addEventListener('click', () => {
+                const url = input.value.trim();
+                if (!url) {
+                    Toast.warning('Please enter a URL to analyze.');
+                    return;
+                }
+                runUrlScan(url);
+            });
+
+            // Enter key trigger
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    analyzeBtn.click();
+                }
+            });
+        });
+
+        async function runUrlScan(url) {
+            const loading = document.getElementById('url-loading');
+            const results = document.getElementById('url-results');
+
+            loading.style.display = 'block';
+            results.style.display = 'none';
+
+            try {
+                const data = await API.analyzeURL(url);
+                loading.style.display = 'none';
+
+                if (!data.success) {
+                    throw new Error(data.error || 'URL analysis failed');
+                }
+
+                renderUrlResults(data);
+                Toast.success('URL analysis complete!');
+            } catch (err) {
+                loading.style.display = 'none';
+                Toast.error(err.message);
+            }
+        }
+
+        function renderUrlResults(data) {
+            const results = document.getElementById('url-results');
+            results.style.display = 'block';
+
+            const score = data.risk_score || 0;
+            const classification = data.classification || 'SAFE';
+
+            document.getElementById('url-target-display').textContent = data.url;
+            document.getElementById('res-hostname').textContent = data.hostname || 'N/A';
+            document.getElementById('res-scheme').textContent = (data.scheme || 'http').toUpperCase();
+            document.getElementById('res-indicators-count').textContent = (data.indicators || []).length;
+
+            const classEl = document.getElementById('url-classification');
+            classEl.textContent = classification;
+            classEl.style.color = getClassificationColor(classification);
+
+            const confEl = document.getElementById('url-confidence');
+            confEl.textContent = `Confidence: ${data.gemini_analysis?.confidence || 'MEDIUM'}`;
+
+            drawScoreCircle('url-score-circle', score);
+
+            // Indicators
+            const indicatorsList = document.getElementById('indicators-list');
+            if (!data.indicators || data.indicators.length === 0) {
+                indicatorsList.innerHTML = '<p style="color: var(--color-safe); font-weight: 500;">✓ No suspicious URL indicators identified.</p>';
+            } else {
+                indicatorsList.innerHTML = data.indicators.map(ind => `
+                    <div class="reason-item ${ind.severity === 'high' ? 'high' : ''}">
+                        <div class="reason-title">
+                            ${ind.severity === 'high' ? '🔴' : '🟡'} ${escapeHtml(ind.name)}
+                            <span class="badge badge-${ind.severity === 'high' ? 'malicious' : 'suspicious'}" style="margin-left: 8px; font-size: 10px;">
+                                +${ind.points} pts
+                            </span>
+                        </div>
+                        <div class="reason-desc">${escapeHtml(ind.description)}</div>
+                    </div>
+                `).join('');
+            }
+
+            // AI Assessment
+            const aiContainer = document.getElementById('url-ai-assessment');
+            if (data.gemini_analysis) {
+                aiContainer.innerHTML = `
+                    <div class="ai-assessment">
+                        <h3>🤖 AI Link Evaluation
+                            <span class="badge badge-info" style="margin-left: 8px; font-size: 10px;">Powered by Gemini</span>
+                        </h3>
+                        <p style="margin-bottom: 12px;">${escapeHtml(data.gemini_analysis.summary || '')}</p>
+                        ${data.gemini_analysis.reasons?.length ? `
+                            <ul style="list-style: none; padding: 0;">
+                                ${data.gemini_analysis.reasons.map(r => `
+                                    <li style="padding: 4px 0; font-size: 13px; display: flex; gap: 8px;">
+                                        <span style="color: var(--accent-secondary);">▸</span> ${escapeHtml(r)}
+                                    </li>
+                                `).join('')}
+                            </ul>
+                        ` : ''}
+                    </div>
+                `;
+            } else {
+                aiContainer.innerHTML = `
+                    <div class="ai-assessment" style="background: var(--bg-hover); border-color: var(--border-color);">
+                        <h3 style="color: var(--text-secondary);">🤖 AI Link Evaluation</h3>
+                        <p style="color: var(--text-secondary);">Heuristic evaluation applied. Configure GEMINI_API_KEY in .env for generative intelligence.</p>
+                    </div>
+                `;
+            }
+
+            // Recommendations
+            const actionBanner = document.getElementById('url-action-banner');
+            const recList = document.getElementById('url-recommendations');
+
+            if (classification === 'MALICIOUS') {
+                actionBanner.style.background = 'var(--color-malicious-light)';
+                actionBanner.innerHTML = '<strong style="color: var(--color-malicious); font-size: 16px;">BLOCK / DO NOT OPEN</strong><div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">This link shows strong characteristics of phishing, malware hosting, or fraudulent infrastructure.</div>';
+                recList.innerHTML = `
+                    <li>Do not click or navigate to this destination.</li>
+                    <li>If received via SMS or chat, report the sender as spam/phishing.</li>
+                    <li>Do not download or install any .apk payload delivered by this domain.</li>
+                `;
+            } else if (classification === 'SUSPICIOUS') {
+                actionBanner.style.background = 'var(--color-suspicious-light)';
+                actionBanner.innerHTML = '<strong style="color: var(--color-suspicious); font-size: 16px;">PROCEED WITH CAUTION</strong><div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">Heuristics found anomalous characteristics (e.g. raw IP address, unusual TLD, or sensitive terms).</div>';
+                recList.innerHTML = `
+                    <li>Inspect the full destination address before providing credentials.</li>
+                    <li>Verify whether the domain belongs to the official service provider.</li>
+                `;
+            } else {
+                actionBanner.style.background = 'var(--color-safe-light)';
+                actionBanner.innerHTML = '<strong style="color: var(--color-safe); font-size: 16px;">NO ANOMALIES FOUND</strong><div style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">Domain and URL formatting appear standard.</div>';
+                recList.innerHTML = `
+                    <li>Always ensure HTTPS connection is active and valid.</li>
+                    <li>Never enter sensitive passwords on unknown third-party websites.</li>
+                `;
+            }
+
+            results.scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>
